@@ -1,0 +1,101 @@
+---
+title: "Case Study 1"
+output: html_document
+date: "2022-07-21"
+---
+## Scenario
+A junior data analyst is working in the marketing analyst team at Cyclistic, a bike-share company in Chicago. There are 2 types of riders:
+
+- Customers who purchase single-ride or full-day passes are referred to as Casual riders
+
+- Customers who purchase annual memberships are Cyclistic members
+
+The company’s future success depends on maximizing the number of annual memberships and needs to understand how casual riders and annual members use Cyclistic bikes differently. From these insights,your team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve your recommendations, so they must be backed up with compelling data insights and professional data visualizations. In short, the company wants to know about the number of casual riders and annual members, and their riding distance.
+
+
+
+## Objectives of analysis
+1. How do annual members and casual riders use Cyclistic bikes differently?
+2. Why would casual riders buy Cyclistic annual memberships?
+3. How can Cyclistic use digital media to influence casual riders to become members?
+
+## Preparing data
+The data is on an AWS server where it is easily downloadable and named correctly. I have downloaded the previous 12 months data and stored it locally for the next steps in this process. It is organized by year and Fiscal Quarters. The data is reliable and original since it comes from the company.It is comprehensive, current, and cited. 
+
+## Processing Data
+Start with processing the data by reading all CSV files first
+
+```{r echo = T, results = 'hide'}
+cycling_202107 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202107-divvy-tripdata.csv")
+cycling_202108 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202108-divvy-tripdata.csv")
+cycling_202109 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202109-divvy-tripdata.csv")
+cycling_202110 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202110-divvy-tripdata.csv")
+cycling_202111 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202111-divvy-tripdata.csv")
+cycling_202112 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202112-divvy-tripdata.csv")
+cycling_202201 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202201-divvy-tripdata.csv")
+cycling_202202 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202202-divvy-tripdata.csv")
+cycling_202203 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202203-divvy-tripdata.csv")
+cycling_202204 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202204-divvy-tripdata.csv")
+cycling_202205 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202205-divvy-tripdata.csv")
+cycling_202206 <- read.csv("G:/Portfolio Projects/Case Study/Cyclistic trip data/202206-divvy-tripdata.csv")
+```
+
+Loading some important packages
+```{r, message=FALSE}
+library(dplyr)
+library(lubridate)
+```
+
+
+Then start merging all 12 month of data and add a new column for ride time of each rider.
+
+```{r echo=T, results='hide'}
+cycling_data <-
+  rbind(cycling_202107,cycling_202108,cycling_202109,cycling_202110,cycling_202111,cycling_202112,cycling_202201,cycling_202202,cycling_202203,cycling_202204,cycling_202205,cycling_202206)
+```
+
+```{r echo=T, results='hide'}
+cycling_data$ended_at <- strptime(cycling_data$ended_at,format = "%Y-%m-%d %H:%M:%S")
+cycling_data$started_at <- strptime(cycling_data$started_at,format = "%Y-%m-%d %H:%M:%S")
+```
+
+```{r echo=T, results='hide'}
+cycling_data$ride_length <- difftime(cycling_data$ended_at, cycling_data$started_at)
+#is.factor(cycling_data$ride_length)
+cycling_data$ride_length <- as.numeric(as.character(cycling_data$ride_length))
+#is.numeric(cycling_data$ride_length)
+
+```
+
+```{r echo=T, results='hide'}
+ride_length <- cycling_data$ride_length
+```
+
+Now we want to filter out instances where ride length is < 0, it is possible a mistake occurred when entering those data.
+```{r echo=T, results='hide'}
+cycling_data <- filter(cycling_data, ride_length > 0)
+```
+
+After filtering out negative ride times and ones departing HQ for maintenance, an extra column is also added showcasing day of the week a bike is being used.
+```{r echo=T, results='hide'}
+cycling_data <- cycling_data[cycling_data$ride_length > 0 | cycling_data$start_station_name != "HQ QR",]
+
+cycling_data$`ride_length > 0 | cycling_data$start_station_name != "HQ QR"` <- NULL
+cycling_data$`ride_length > 0` <- NULL
+cycling_data$day_of_the_week <- wday(cycling_data$started_at)
+```
+
+
+After cleaning out the data, a summary is useful to analyse ride length.
+```{r echo=T, results='hide'}
+cycling_data %>%
+  na.omit(cycling_data)
+  summary(cycling_data, na.rm = TRUE)
+```
+
+The final step is to export the cycling_data to CSV to perform further analysis.
+```{r echo=T, results='hide'}
+write.csv(cycling_data, "G:/Portfolio Projects/Case Study/Cyclistic trip data/cycling_data.csv")
+```
+
+
