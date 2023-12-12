@@ -1,0 +1,209 @@
+---
+title: "Assignment 2"
+output: word_document
+date: "2023-09-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!require(tidyverse)){
+    install.packages("tidyverse")
+    library(tidyverse)
+}
+if(!require(readxl)){
+    install.packages("readxl")
+    library(readxl)
+}
+```
+
+Question 1.1
+```{r, warning = FALSE}
+#Load Dataset
+Female_players.df <- read.csv("female_players_23_updated.csv")
+Nationality.df <- read.csv("Nationality.csv")
+
+#Clean space in column name
+Female_players.df[0,] <- str_replace_all(Female_players.df[0,], " ", "")
+Nationality.df[0,] <- str_replace_all(Nationality.df[0,], " ", "")
+
+#Join
+
+
+#Show Summary
+summary(Female_players.df)
+summary(Nationality.df)
+```
+
+Question 1.2
+```{r, warning = FALSE}
+#Deleting duplicate rows
+Distinct_nationality <- distinct(Nationality.df)
+Distinct_players <- distinct(Female_players.df)
+
+#Showing number of duplicate rows
+duplicate_player <- nrow(Female_players.df) - nrow(Distinct_players)
+duplicate_nation <- nrow(Nationality.df) - nrow(Distinct_nationality)
+
+#Display the results
+cat("There are",duplicate_player, "duplicated rows in Female Player Dataframe\n")
+cat("Number of rows before removal:",nrow(Female_players.df),"\nNumber of rows after removal:", nrow(Distinct_players),"\n")
+cat("There are",duplicate_nation, "duplicated rows in Nationality Dataframe\n")
+cat("Number of rows before removal:",nrow(Nationality.df),"\nNumber of rows after removal:", nrow(Distinct_nationality),"\n")
+
+#Replace Null
+Female_players.df$value.euro <- Female_players.df$value.euro[Female_players.df$value.euro == ""] <- NA
+
+```
+
+Question 1.3
+For Australian players with a preferred right foot:
+```{r, warning = FALSE}
+#Conditions: Australian player, right foot, overall > 85 in FIFA 23 update 9
+Female_players.df[Female_players.df$nationality_id == 195 & Female_players.df$preferred_foot == 'Right'& Female_players.df$overall > 85 & Female_players.df$fifa_version == 23 & Female_players.df$fifa_update == 9,]
+
+```
+
+Question 1.4
+```{r, warning = FALSE}
+
+Q_14 <- Female_players.df[Female_players.df$nation_position == 'GK' & Female_players.df$fifa_version == 23 & Female_players.df$fifa_update == 9, c("player_id", "short_name", "nation_position", "age", "international_reputation")]
+
+head(Q_14[order(-Q_14$international_reputation, Q_14$age),],5)
+
+```
+
+
+Question 1.5
+```{r, warning = FALSE}
+Female_players.df %>% 
+  filter(international_reputation >= 3 & fifa_version == 23 & fifa_update == 9) %>%
+  group_by(nationality_id) %>%
+  summarise(Average_overall = mean(overall), Number_of_Players = n()) %>%
+  arrange(desc(Average_overall)) %>%
+  head(3)
+
+```
+
+Question 1.6
+The five important values in the bar plot is represented by 5 lines. The top and bottom line represents the maximum and minimum overall for Australia and USA. The box represents range of values one quartile from the median, both above and below. Lastly, the middle line is the median value. From the boxplot, highest average USA player is lower than Australia, but quartile values and median for USA players are higher than Australia. Both Australia and USA has the same lowest overall.
+
+```{r, warning = FALSE}
+Q_16 <- Female_players.df[(Female_players.df$nationality_id == 195|Female_players.df$nationality_id == 95) & (Female_players.df$fifa_version == 23 & Female_players.df$fifa_update == 9),]
+
+#Australia
+boxplot(Q_16[Q_16$nationality_id == 195, c("overall")], 
+        Q_16[Q_16$nationality_id == 95, c("overall")], 
+        names = c("Australia","USA"),
+        ylab = "Overall",
+        main = "Player overall Distribution: Australia and USA")
+
+```
+
+Question 1.7
+(a) To rank goalkeepers, their overall and potential are two most important criteria. Ideal goalkeeper should have high overall with high potential. Hence, ranking will be sorted with overall in descending order for both overall and potential.
+
+(b)
+```{r, warning = FALSE}
+Q_17 <- Female_players.df[Female_players.df$fifa_version == 23 & Female_players.df$fifa_update == 9 &Female_players.df$nation_position == "GK",]
+
+head(Q_17[order(-Q_17$overall, -Q_17$potential),],5)
+```
+
+(c) These are the top five goalkeepers with high overall and high potential, making them the 5 best goalkeeper. Salary can also be a factor since a team might not have cap space to sign one of the five, and have to pick a cheaper but worse one.
+
+Question 2.1
+```{r, warning = FALSE}
+#Load Dataset
+names <- c("Country / Position","2019", "2020", "2021","2022","2023")
+Players.df <- read_excel("Players.xlsx",col_names = names, skip = 3)
+glimpse(Players.df)
+```
+
+Question 2.2
+```{r, warning = FALSE}
+#(a)
+Players.df <- Players.df %>%
+  pivot_longer(
+    cols = c("2019","2020","2021","2022","2023"),
+    names_to = "Year",
+    values_to = "Value",
+  ) %>%
+  na.exclude()
+
+#(b)
+Players.df <- Players.df %>%
+  separate(`Country / Position`, c("Country","Position"), sep = '/', convert = TRUE)
+
+#(c)
+Players.df <- Players.df %>%
+  separate(`Value`, c("NumberPlayers","Score"), convert = TRUE)
+
+#(d)
+cat("Number of Columns in the dataframe: ", ncol(Players.df), "\n")
+cat("Number of Rows in the dataframe: ", nrow(Players.df), "\n")
+
+#(e)
+cat("Number of distinct countries in the dataframe: ", n_distinct(Players.df$Country), "\n")
+cat("Number of distinct rows in the dataframe: ", n_distinct(Players.df$Year), "\n")
+
+```
+
+Question 2.3
+Countries with average score between 65 and 70 on all positions are: China, Egypt, Sweden, Turkey.
+```{r}
+Players.df %>% 
+  filter(Year == 2023) %>%
+  group_by(Country, Position, Year) %>%
+  summarise(Average_Score = mean(Score))
+```
+
+Question 2.4
+There are 68 countries in Data sheet and 249 countries in Continent page, so 181 countries are not shown in Data worksheet.
+```{r, warning = FALSE}
+#Load Dataset
+Continent.df <- read_excel("Players.xlsx",sheet = 2, col_names = c("Country","Continent"), skip = 3)
+
+Players.df %>%
+  select(Country) %>%
+  distinct() %>%
+  summarise(Number_of_Countries = nrow(.))
+
+Continent.df %>%
+  select(Country) %>%
+  distinct() %>%
+  summarise(Number_of_Countries = nrow(.))
+```
+
+Question 2.5
+(a) Number of recorded player in 2021 was selected, and arranged in a descending order, meaning a country will likely need less help from FIFA if more players are recorded.
+
+(b) Top 5 African country based on number of players criteria
+
+(c) A bar chart is provided with ranking from highest to lowest
+
+(d) There are very limited number of African players recorded in FIFA.This can be due to a few factors: FIFA is doesn't collect a lot of information about African players; African countries don't have the necessary facilities and coaches to develop local players; or a mixture of both. FIFA should start with upgrade scouting and development program in Africa.
+
+```{r, warning = FALSE}
+
+Players.df <- Players.df %>%
+  mutate(Country = trimws(as.character(Country)))
+
+Continent.df <- Continent.df %>%
+  mutate(Country = trimws(as.character(Country)))
+
+Q_25 <- left_join(Players.df, Continent.df, by = c('Country' = 'Country'))
+
+Q_25b <- Q_25 %>% filter(Continent == 'Africa' & Year == 2021) %>%
+  group_by(Country) %>%
+  summarise(Total_Players = n()) %>%
+  arrange(desc(Total_Players)) %>%
+  head(5)
+
+Q_25b %>% ggplot(.) + aes(x = reorder(Q_25b$Country, -Q_25b$Total_Players) ,y = Q_25b$Total_Players) +
+geom_col() + xlab('Country') + ylab('Number of Players')
+
+```
+
+
+
+

@@ -1,0 +1,96 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!require(tidyverse)){
+    install.packages("tidyverse")
+    library(tidyverse)
+}
+if(!require(readxl)){
+    install.packages("readxl")
+    library(readxl)
+}
+```
+
+Task 1:
+```{r, warnings = FALSE}
+#Read Dataset
+Wine.df <- read_xlsx("Wine.xlsx")
+Region.df <- read_csv("Region.csv", show_col_types = FALSE)
+WineRating.df <- read_table("WineRating.txt", skip = 3, show_col_types = FALSE)
+
+#Fill empty columns in Wine.df
+Wine.df <- Wine.df %>%
+  select(ProductID:Region)%>%
+  merge(.,Region.df[,-1],by = c("Region")) %>%
+  merge(.,WineRating.df, by = c("ProductID"))
+```
+
+Task 2
+Some columns need cleaning and in the wrong type. Example: Price should be in numeric type and contains only numbers, but price column in the Wine dataframe is in string/character format and some data contains word such as dollars and cents, which need to be cleaned before data can be used for analysis. Other columns have datatype that make sense(numeric ratings and scores in numeric type, names in character type). Lastly, price for some wine are missing. A number of factors should be considered when filling up missing values, such as quality of the wine (directly linked to price) and type of wine(different type of wine can have different prices). As a result, a simple average of aggregating by price and wine type is not accurate.
+
+```{r}
+Type = {}
+Min_value = {}
+Max_Value = {}
+
+Wine.df$Price <- as.numeric(gsub("[$| |dollars|cents,]","", Wine.df$Price))
+
+#Part A
+for (x in 1:10){
+  Type[x] = typeof(Wine.df[,x])
+  if (is.numeric(Wine.df[,x]) == TRUE){
+    Min_value[x] = min(Wine.df[,x])
+    Max_Value[x] = max(Wine.df[,x])
+    }
+  else {
+    Min_value[x] = "Not Numeric"
+    Max_Value[x] = "Not Numeric"
+  }
+}
+
+#Part B
+#Fix up Price column, convert to numeric
+Wine.df$Price <- as.numeric(gsub("[$| |dollars|cents,]","", Wine.df$Price))
+
+
+```
+
+Task 3
+Price value can't be directly converted into numeric due to some formatting issues, words like dollars and cents are present along with numeric values.Price of wines are positively skewed, most of the price are less than $40 as shown on histogram. 
+```{r}
+Wine.df$Price <- as.numeric(gsub("[$| |dollars|cents,]","", Wine.df$Price))
+ggplot(Wine.df,aes(x = Price)) + geom_histogram(bins = 20) + ggtitle("Wine Price Distribution") + ylab("Count of Wine Price") + theme(plot.title = element_text(hjust = 0.5)) + xlim(0, 600)
+
+#Boxplot
+outlier <- boxplot.stats(Wine.df$Price)$out #Detecting outlier
+Wine.df[which(Wine.df$Price %in% outlier), "Price"] <- NA #Removing outlier
+boxplot(Wine.df$Price,
+        ylab = "Wine Price",
+        main = "Wine Price Distribution")
+
+```
+
+Task 4
+(a)
+Rating and number of rating would be the two suitable criteria to rank wineries, since these two categories are directly related to quality of the wine. Ideally, a great winery should have a high rating and a large number of ratings. High rating represents higher wine quality, number of ratings as a sample population should be large enough to be considered statistically significant.
+
+(b)
+```{r}
+Ranking.df <- Wine.df %>%
+  select(Region, Name, WineType, Year, Price, Country, Rating, NumberOfRatings) %>%
+  arrange(desc(Rating), desc(NumberOfRatings))
+```
+
+Task 5
+Outcomes:
+Taking into account of the rankings, red wine with the highest rating comes from Italy (Barolo Riserva Monfortino 2013, Toscana 2016, Veneto Alzero Cabernet 2009) and top rated White wine (Montrachet Grand Cru Marquis de Laguiche 2017), Rose wine (Garrus Rosé 2018) and sparkling wine (Cristal Brut Champagne (Millésimé) 2002) all come from France. Furthermore, price of the wine should be between 10 to 27 for it not considered an outlier.
+
+Recommendations:
+Managers should focus on Italy and France wineries for wines with the best quality, Italy for red wine and France for other categories. Pricing should ideally be between 10-27. However, it is worth noting that an outlier price can mean higher quality for special occasions. Hence, outlier prices should not be simply discarded, context is very important when it comes to wine pricing.
+
+
+
